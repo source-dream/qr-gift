@@ -13,7 +13,7 @@ services:
       LOCAL_STORAGE_DIR: /data/object-storage
     command: ["sh", "-c", "python scripts/db_upgrade.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
-      - "80:8000"
+      - "2026:8000"
     volumes:
       - qrgift_data:/data
     networks:

@@ -1,0 +1,35 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(240, 127, 42, 0.2), transparent 34%),
+    radial-gradient(circle at 10% 20%, rgba(217, 54, 43, 0.15), transparent 28%),
+    linear-gradient(180deg, var(--color-bg), var(--color-bg-soft));
+  color: var(--color-text-main);
+  font-family: var(--font-body);
+  overflow-x: clip;
+}
+
+.card-surface {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+}
+
+@media (max-width: 900px) {
+  .card-surface {
+    border-radius: 12px;
+    padding: 12px;
+  }
+}

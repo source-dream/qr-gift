@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: qrgift-api
+    environment:
+      APP_NAME: QRGift API
+      APP_ENV: prod
+      SECRET_KEY: change-this-secret
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://127.0.0.1}
+      SQLITE_PATH: /data/qrgift.db
+      LOCAL_STORAGE_DIR: /data/object-storage
+    command: ["sh", "-c", "python scripts/db_upgrade.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "80:8000"
+    volumes:
+      - qrgift_data:/data
+    networks:
+      - qrgift_net
+
+volumes:
+  qrgift_data:
+
+networks:
+  qrgift_net:
+    driver: bridge

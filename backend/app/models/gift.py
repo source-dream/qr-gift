@@ -21,6 +21,7 @@ class GiftQrcode(Base, TimestampMixin):
     dispatch_strategy: Mapped[str] = mapped_column(String(20), default="random")
     style_type: Mapped[str] = mapped_column(String(30), default="festival")
     style_config: Mapped[str] = mapped_column(Text, default="{}")
+    storage_channel_id: Mapped[str] = mapped_column(String(64), default="")
     object_key: Mapped[str] = mapped_column(String(255), default="")
     image_url: Mapped[str] = mapped_column(String(500), default="")
 

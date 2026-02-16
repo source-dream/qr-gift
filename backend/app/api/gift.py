@@ -16,8 +16,8 @@ from app.schemas.gift import (
     UpdateGiftRequest,
 )
 from app.services.gift_service import GiftService
-from app.services.system_config_service import get_runtime_storage_config
-from app.storage.factory import get_storage
+from app.services.system_config_service import get_runtime_storage_channels
+from app.storage.factory import create_storage_from_channel
 
 router = APIRouter(prefix="/api/gifts", tags=["gifts"])
 
@@ -231,7 +231,11 @@ def download_gift_qrcode(
     if not gift.object_key:
         raise HTTPException(status_code=400, detail="该礼物二维码缺少存储对象，请重新生成")
 
-    storage = get_storage(db)
+    channels = get_runtime_storage_channels(db)
+    channel = next((item for item in channels if item.id == gift.storage_channel_id), None)
+    if not channel:
+        raise HTTPException(status_code=400, detail="当前二维码存储渠道不可用，请重新生成")
+    storage = create_storage_from_channel(channel)
     try:
         image = storage.download_bytes(gift.object_key)
     except Exception as exc:
@@ -256,12 +260,13 @@ def get_gift_qrcode_download_url(
     if not gift.object_key:
         raise HTTPException(status_code=400, detail="该礼物二维码缺少存储对象，请重新生成")
 
-    runtime = get_runtime_storage_config(db)
-    if runtime.provider == "local":
+    channels = get_runtime_storage_channels(db)
+    channel = next((item for item in channels if item.id == gift.storage_channel_id), None)
+    if not channel or channel.provider == "local":
         base = _resolve_public_web_base(request)
         return ok({"url": f"{base}/api/gifts/{gift_id}/qrcode.png?download=1"})
 
-    storage = get_storage(db)
+    storage = create_storage_from_channel(channel)
     try:
         url = storage.generate_presigned_url(gift.object_key, expires=600)
     except Exception as exc:

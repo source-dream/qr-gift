@@ -72,3 +72,39 @@ class ClaimContactResponse(BaseModel):
 
 class ClaimContactUpdateRequest(BaseModel):
     contact_text: str = Field(min_length=1, max_length=200)
+
+
+class StorageChannelItem(BaseModel):
+    id: str
+    name: str
+    provider: str = Field(pattern="^(local|minio|aliyun)$")
+    enabled: bool = True
+    priority: int = 100
+    bucket: str = ""
+    base_url: str = ""
+    storage_prefix: str = ""
+    local_storage_dir: str = ""
+    minio_endpoint: str = ""
+    minio_secure: bool = False
+    minio_access_key: str = ""
+    minio_secret_key: str = ""
+    aliyun_oss_endpoint: str = ""
+    aliyun_oss_region: str = ""
+    aliyun_oss_access_key_id: str = ""
+    aliyun_oss_access_key_secret: str = ""
+    minio_access_key_set: bool = False
+    minio_secret_key_set: bool = False
+    aliyun_oss_access_key_id_set: bool = False
+    aliyun_oss_access_key_secret_set: bool = False
+
+
+class StorageChannelsResponse(BaseModel):
+    channels: list[StorageChannelItem]
+
+
+class StorageChannelsUpdateRequest(BaseModel):
+    channels: list[StorageChannelItem]
+
+
+class StorageChannelTestRequest(StorageChannelItem):
+    pass

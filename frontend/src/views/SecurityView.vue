@@ -123,7 +123,19 @@ onMounted(() => {
 .form-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; }
 .field { display: grid; gap: 6px; }
 .field.full { grid-column: span 2; }
-.input { border: 1px solid #ccc; border-radius: 10px; padding: 8px 10px; }
+.input {
+  background: color-mix(in oklab, var(--color-surface) 82%, var(--color-bg) 18%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-text-main);
+  padding: 8px 10px;
+}
+.input::placeholder { color: color-mix(in oklab, var(--color-text-secondary) 82%, transparent); }
+.input:focus {
+  border-color: color-mix(in oklab, var(--color-primary) 46%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  outline: none;
+}
 .textarea { min-height: 90px; resize: vertical; }
 .action-button { border: 0; border-radius: 10px; background: var(--color-primary); color: #fff; margin-top: 12px; padding: 8px 12px; cursor: pointer; }
 .message { color: var(--color-text-secondary); margin: 10px 0 0; }

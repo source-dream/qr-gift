@@ -20,6 +20,7 @@ class GiftRepository:
         dispatch_strategy: str,
         style_type: str,
         style_config: str,
+        storage_channel_id: str,
         image_url: str,
         object_key: str,
     ) -> GiftQrcode:
@@ -34,6 +35,7 @@ class GiftRepository:
             dispatch_strategy=dispatch_strategy,
             style_type=style_type,
             style_config=style_config,
+            storage_channel_id=storage_channel_id,
             image_url=image_url,
             object_key=object_key,
         )

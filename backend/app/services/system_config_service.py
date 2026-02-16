@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 from typing import Any
 from uuid import uuid4
 
@@ -10,6 +11,10 @@ from app.models.log import OperationLog
 from app.repositories.system_config_repository import SystemConfigRepository
 from app.schemas.system_config import (
     ClaimContactResponse,
+    StorageChannelItem,
+    StorageChannelsResponse,
+    StorageChannelsUpdateRequest,
+    StorageChannelTestRequest,
     StorageConfigResponse,
     StorageConfigTestRequest,
     StorageConfigUpdateRequest,
@@ -41,7 +46,8 @@ STRIP_KEYS = {
 }
 
 CLAIM_CONTACT_KEY = "claim_contact_text"
-DEFAULT_CLAIM_CONTACT = "请联系活动组织方获取帮助"
+DEFAULT_CLAIM_CONTACT = "当前礼物未到达激活时间、已兑换或者失效，请联系xxxxxxxxxxx"
+STORAGE_CHANNELS_KEY = "storage_channels_v1"
 
 
 @dataclass
@@ -83,6 +89,58 @@ class SystemConfigService:
             aliyun_oss_access_key_id_set=bool(runtime.aliyun_oss_access_key_id),
             aliyun_oss_access_key_secret_set=bool(runtime.aliyun_oss_access_key_secret),
         )
+
+    def list_storage_channels(self) -> StorageChannelsResponse:
+        channels = self._load_storage_channels_runtime()
+        return StorageChannelsResponse(channels=channels)
+
+    def update_storage_channels(
+        self, payload: StorageChannelsUpdateRequest, user_id: int
+    ) -> StorageChannelsResponse:
+        channels = payload.channels
+        if not channels:
+            raise ValueError("至少需要一个存储渠道")
+        if not any(item.enabled for item in channels):
+            raise ValueError("至少需要启用一个存储渠道")
+
+        normalized: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for index, item in enumerate(channels):
+            if item.id in seen_ids:
+                raise ValueError("渠道 ID 重复")
+            seen_ids.add(item.id)
+            row = item.model_dump()
+            row["priority"] = int(item.priority)
+            row["order"] = index
+            self._validate_provider_credentials(row)
+            normalized.append(row)
+
+        encrypted = encrypt_text(json.dumps(normalized, ensure_ascii=False))
+        self.repo.upsert(STORAGE_CHANNELS_KEY, encrypted, is_secret=True)
+        self.db.add(
+            OperationLog(
+                user_id=user_id,
+                action="update_storage_channels",
+                detail=f"count={len(normalized)}",
+            )
+        )
+        self.db.commit()
+        return self.list_storage_channels()
+
+    def test_storage_channel(self, payload: StorageChannelTestRequest) -> None:
+        merged = payload.model_dump()
+        self._validate_provider_credentials(merged)
+        key = f"test/{uuid4().hex}.txt"
+        data = b"qrgift storage test"
+        provider = merged["provider"]
+        if provider == "aliyun":
+            storage = AliyunOssStorage(config=merged)
+        elif provider == "minio":
+            storage = MinioStorage(config=merged)
+        else:
+            storage = LocalFileStorage(config=merged)
+        storage.upload_bytes(key=key, data=data, content_type="text/plain")
+        storage.delete(key)
 
     def get_claim_contact(self) -> ClaimContactResponse:
         item = self.repo.get_by_key(CLAIM_CONTACT_KEY)
@@ -163,6 +221,25 @@ class SystemConfigService:
         storage.delete(key)
 
     def _resolve_runtime_config(self) -> StorageRuntimeConfig:
+        channels = self._load_storage_channels_runtime()
+        for channel in channels:
+            if channel.enabled:
+                return StorageRuntimeConfig(
+                    provider=channel.provider,
+                    bucket=channel.bucket,
+                    base_url=channel.base_url,
+                    storage_prefix=channel.storage_prefix,
+                    local_storage_dir=channel.local_storage_dir,
+                    minio_endpoint=channel.minio_endpoint,
+                    minio_secure=channel.minio_secure,
+                    minio_access_key=channel.minio_access_key,
+                    minio_secret_key=channel.minio_secret_key,
+                    aliyun_oss_endpoint=channel.aliyun_oss_endpoint,
+                    aliyun_oss_region=channel.aliyun_oss_region,
+                    aliyun_oss_access_key_id=channel.aliyun_oss_access_key_id,
+                    aliyun_oss_access_key_secret=channel.aliyun_oss_access_key_secret,
+                )
+
         defaults = self._default_runtime_dict()
         for item in self.repo.list_all():
             if item.config_key not in defaults:
@@ -175,6 +252,63 @@ class SystemConfigService:
                     defaults[item.config_key] = decrypt_text(item.config_value)
                 except Exception:
                     # 中文注释：兼容历史未加密或密钥变更导致的解密失败，避免服务整体不可用。
+                    defaults[item.config_key] = ""
+                continue
+            defaults[item.config_key] = self._cast_plain(item.config_key, item.config_value)
+        return StorageRuntimeConfig(**defaults)
+
+    def _load_storage_channels_runtime(self) -> list[StorageChannelItem]:
+        item = self.repo.get_by_key(STORAGE_CHANNELS_KEY)
+        if item and item.config_value:
+            try:
+                decrypted = decrypt_text(item.config_value) if item.is_secret else item.config_value
+                parsed = json.loads(decrypted)
+                channels: list[StorageChannelItem] = []
+                for row in parsed:
+                    channels.append(StorageChannelItem(**row))
+                channels.sort(key=lambda x: (x.priority, -len(x.name)), reverse=True)
+                return channels
+            except Exception:
+                pass
+
+        runtime = self._resolve_runtime_from_defaults_only()
+        fallback = StorageChannelItem(
+            id="default-local",
+            name="默认本地",
+            provider="local",
+            enabled=True,
+            priority=100,
+            bucket=runtime.bucket,
+            base_url=runtime.base_url,
+            storage_prefix=runtime.storage_prefix,
+            local_storage_dir=runtime.local_storage_dir,
+            minio_endpoint=runtime.minio_endpoint,
+            minio_secure=runtime.minio_secure,
+            minio_access_key=runtime.minio_access_key,
+            minio_secret_key=runtime.minio_secret_key,
+            aliyun_oss_endpoint=runtime.aliyun_oss_endpoint,
+            aliyun_oss_region=runtime.aliyun_oss_region,
+            aliyun_oss_access_key_id=runtime.aliyun_oss_access_key_id,
+            aliyun_oss_access_key_secret=runtime.aliyun_oss_access_key_secret,
+            minio_access_key_set=bool(runtime.minio_access_key),
+            minio_secret_key_set=bool(runtime.minio_secret_key),
+            aliyun_oss_access_key_id_set=bool(runtime.aliyun_oss_access_key_id),
+            aliyun_oss_access_key_secret_set=bool(runtime.aliyun_oss_access_key_secret),
+        )
+        return [fallback]
+
+    def _resolve_runtime_from_defaults_only(self) -> StorageRuntimeConfig:
+        defaults = self._default_runtime_dict()
+        for item in self.repo.list_all():
+            if item.config_key not in defaults:
+                continue
+            if item.is_secret:
+                if not item.config_value:
+                    defaults[item.config_key] = ""
+                    continue
+                try:
+                    defaults[item.config_key] = decrypt_text(item.config_value)
+                except Exception:
                     defaults[item.config_key] = ""
                 continue
             defaults[item.config_key] = self._cast_plain(item.config_key, item.config_value)
@@ -254,6 +388,11 @@ class SystemConfigService:
 
 def get_runtime_storage_config(db: Session) -> StorageRuntimeConfig:
     return SystemConfigService(db)._resolve_runtime_config()
+
+
+def get_runtime_storage_channels(db: Session) -> list[StorageChannelItem]:
+    channels = SystemConfigService(db).list_storage_channels().channels
+    return [item for item in channels if item.enabled]
 
 
 def get_claim_contact_text(db: Session) -> str:

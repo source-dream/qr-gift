@@ -123,8 +123,25 @@ onMounted(async () => {
 .head-row .action-button { margin-top: 0; }
 .message { color: var(--color-text-secondary); margin: 10px 0 0; }
 .table-wrap { margin-top: 14px; overflow: auto; }
-.table { border-collapse: collapse; width: 100%; }
-.table th, .table td { border-bottom: 1px solid color-mix(in oklab, var(--color-text-secondary) 20%, #ddd 80%); padding: 8px; text-align: left; }
+.table {
+  border-collapse: collapse;
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+.table thead th {
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%);
+}
+.table tbody tr:hover {
+  background: color-mix(in oklab, var(--color-primary) 6%, var(--color-surface) 94%);
+}
+.table th, .table td {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-secondary) 22%, transparent);
+  color: var(--color-text-main);
+  padding: 8px;
+  text-align: left;
+}
 .actions-cell { display: flex; gap: 6px; }
 .mini-button { border: 0; border-radius: 8px; background: var(--color-primary); color: #fff; padding: 4px 8px; cursor: pointer; }
 .mini-button.ghost { background: transparent; border: 1px solid color-mix(in oklab, var(--color-primary) 28%, #999 20%); color: var(--color-text-main); }

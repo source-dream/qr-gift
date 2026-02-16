@@ -6,6 +6,12 @@ interface ApiEnvelope<T> {
   data: T
 }
 
+interface LogListQuery {
+  limit?: number
+  offset?: number
+  q?: string
+}
+
 export interface AccessLogItem {
   id: number
   source: string
@@ -36,17 +42,17 @@ export interface OperationLogItem {
   created_at: string
 }
 
-export async function listAccessLogs(): Promise<AccessLogItem[]> {
-  const response = await client.get<ApiEnvelope<AccessLogItem[]>>('/logs/access')
+export async function listAccessLogs(params: LogListQuery = {}): Promise<AccessLogItem[]> {
+  const response = await client.get<ApiEnvelope<AccessLogItem[]>>('/logs/access', { params })
   return response.data.data
 }
 
-export async function listClaimLogs(): Promise<ClaimLogItem[]> {
-  const response = await client.get<ApiEnvelope<ClaimLogItem[]>>('/logs/claims')
+export async function listClaimLogs(params: LogListQuery = {}): Promise<ClaimLogItem[]> {
+  const response = await client.get<ApiEnvelope<ClaimLogItem[]>>('/logs/claims', { params })
   return response.data.data
 }
 
-export async function listOperationLogs(): Promise<OperationLogItem[]> {
-  const response = await client.get<ApiEnvelope<OperationLogItem[]>>('/logs/operations')
+export async function listOperationLogs(params: LogListQuery = {}): Promise<OperationLogItem[]> {
+  const response = await client.get<ApiEnvelope<OperationLogItem[]>>('/logs/operations', { params })
   return response.data.data
 }

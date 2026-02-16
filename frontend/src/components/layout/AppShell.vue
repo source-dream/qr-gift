@@ -140,12 +140,16 @@ function logout(): void {
   padding: 10px 12px;
   color: var(--color-text-main);
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.nav-link:hover {
+  background-color: color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%);
 }
 
 .nav-link.router-link-exact-active {
-  background-color: var(--color-primary-soft);
-  color: var(--color-primary-deep);
+  background-color: color-mix(in oklab, var(--color-primary) 14%, var(--color-surface) 86%);
+  color: color-mix(in oklab, var(--color-primary-deep) 72%, var(--color-text-main) 28%);
 }
 
 .content {

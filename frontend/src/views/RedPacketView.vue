@@ -318,16 +318,52 @@ onMounted(async () => {
 .action-button { border: 0; border-radius: 10px; background: var(--color-primary); color: #fff; padding: 8px 12px; cursor: pointer; }
 .message { color: var(--color-text-secondary); margin: 10px 0 0; }
 .filters { display: grid; gap: 8px; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 12px; }
-.input { border: 1px solid #ccc; border-radius: 10px; padding: 8px 10px; }
+.input {
+  background: color-mix(in oklab, var(--color-surface) 82%, var(--color-bg) 18%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-text-main);
+  padding: 8px 10px;
+}
+.input::placeholder { color: color-mix(in oklab, var(--color-text-secondary) 82%, transparent); }
+.input:focus {
+  border-color: color-mix(in oklab, var(--color-primary) 46%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  outline: none;
+}
 .table-wrap { margin-top: 14px; overflow: auto; }
-.table { border-collapse: collapse; width: 100%; }
-.table th, .table td { border-bottom: 1px solid color-mix(in oklab, var(--color-text-secondary) 20%, #ddd 80%); padding: 8px; text-align: left; }
+.table {
+  border-collapse: collapse;
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+.table thead th {
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%);
+}
+.table tbody tr:hover {
+  background: color-mix(in oklab, var(--color-primary) 6%, var(--color-surface) 94%);
+}
+.table th, .table td {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-secondary) 22%, transparent);
+  color: var(--color-text-main);
+  padding: 8px;
+  text-align: left;
+}
 .url-cell { max-width: 440px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.url-cell a { color: var(--color-primary-deep); }
 .actions-cell { display: flex; gap: 6px; }
 .mini-button { border: 0; border-radius: 8px; background: var(--color-primary); color: #fff; cursor: pointer; padding: 4px 8px; }
 .mini-button.ghost { background: transparent; border: 1px solid color-mix(in oklab, var(--color-primary) 28%, #999 20%); color: var(--color-text-main); }
-.mini-button.danger { background: #bf3f2b; }
-.edit-panel { border: 1px solid #eadfd6; border-radius: 12px; margin-top: 14px; padding: 12px; }
+.mini-button.danger { background: color-mix(in oklab, var(--color-primary-deep) 82%, #7a1f18 18%); }
+.edit-panel {
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 12px;
+  margin-top: 14px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--color-surface) 90%, var(--color-bg) 10%);
+}
 .edit-title { margin: 0 0 10px; }
 .edit-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field { display: grid; gap: 6px; }

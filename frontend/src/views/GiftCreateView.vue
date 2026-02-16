@@ -9,6 +9,10 @@ import { listRedPackets, type RedPacketItem } from '../api/modules/redPacket'
 const router = useRouter()
 const loading = shallowRef(false)
 const message = shallowRef('')
+const toast = reactive({
+  visible: false,
+  text: '',
+})
 const redPackets = shallowRef<RedPacketItem[]>([])
 const claimUrl = shallowRef('')
 const previewQrDataUrl = shallowRef('')
@@ -34,6 +38,14 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
     return detail
   }
   return fallback
+}
+
+function showToast(text: string): void {
+  toast.text = text
+  toast.visible = true
+  setTimeout(() => {
+    toast.visible = false
+  }, 3000)
 }
 
 async function loadRedPackets(): Promise<void> {
@@ -81,6 +93,7 @@ async function submitCreate(): Promise<void> {
     claimUrl.value = result.claim_url
     await generatePreviewQr()
     message.value = '礼物二维码创建成功'
+    showToast('二维码创建并上传成功')
     if (form.auto_return_to_list) {
       router.push('/gifts?created=1')
       return
@@ -131,6 +144,7 @@ function downloadQrCode(): void {
 
 <template>
   <section class="card-surface">
+    <div v-if="toast.visible" class="toast">{{ toast.text }}</div>
     <div class="head-row">
       <div>
         <h2 class="title">新建礼物二维码</h2>
@@ -225,15 +239,59 @@ function downloadQrCode(): void {
 .form-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; }
 .field { display: grid; gap: 6px; }
 .field.full { grid-column: span 2; }
-.input { border: 1px solid #ccc; border-radius: 10px; padding: 8px 10px; }
+.input {
+  background: color-mix(in oklab, var(--color-surface) 82%, var(--color-bg) 18%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-text-main);
+  padding: 8px 10px;
+}
+.input::placeholder { color: color-mix(in oklab, var(--color-text-secondary) 82%, transparent); }
+.input:focus {
+  border-color: color-mix(in oklab, var(--color-primary) 46%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  outline: none;
+}
 .packet-grid { display: grid; gap: 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 4px; }
-.packet-item { align-items: center; border: 1px solid #e5dfd7; border-radius: 8px; display: flex; gap: 6px; padding: 6px 8px; }
+.packet-item {
+  align-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background: color-mix(in oklab, var(--color-surface) 90%, var(--color-bg) 10%);
+}
 .preview-field { margin-top: 2px; }
 .preview-card { align-items: center; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; min-height: 150px; justify-content: center; padding: 10px; }
-.preview-festival { background: linear-gradient(135deg, #fff3ef, #ffe4db); border: 1px solid #f5c7b8; }
-.preview-simple { background: #f5f5f5; border: 1px solid #ddd; }
-.preview-poster { background: linear-gradient(135deg, #fff6e8, #ffe9bf); border: 1px solid #efcf91; }
-.preview-qr { background: #fff; border: 1px dashed #aaa; border-radius: 8px; height: 86px; padding: 3px; width: 86px; }
+.preview-festival {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%),
+    color-mix(in oklab, var(--color-accent) 12%, var(--color-surface) 88%)
+  );
+  border: 1px solid color-mix(in oklab, var(--color-primary) 28%, transparent);
+}
+.preview-simple {
+  background: color-mix(in oklab, var(--color-surface) 84%, var(--color-bg) 16%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+}
+.preview-poster {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-gold) 16%, var(--color-surface) 84%),
+    color-mix(in oklab, var(--color-accent) 18%, var(--color-surface) 82%)
+  );
+  border: 1px solid color-mix(in oklab, var(--color-gold) 28%, transparent);
+}
+.preview-qr {
+  background: var(--color-surface);
+  border: 1px dashed color-mix(in oklab, var(--color-text-secondary) 40%, transparent);
+  border-radius: 8px;
+  height: 86px;
+  padding: 3px;
+  width: 86px;
+}
 .preview-qr-fallback { align-items: center; display: flex; font-weight: 700; justify-content: center; }
 .preview-title, .preview-desc { margin: 0; }
 .action-button { border: 0; border-radius: 10px; background: var(--color-primary); color: #fff; margin-top: 12px; padding: 8px 12px; cursor: pointer; }
@@ -241,6 +299,16 @@ function downloadQrCode(): void {
 .option-field { align-items: center; display: flex; gap: 8px; margin-top: 4px; }
 .message { color: var(--color-text-secondary); margin: 10px 0 0; }
 .claim-url { color: var(--color-primary-deep); margin: 8px 0 0; word-break: break-all; }
+.toast {
+  background: color-mix(in oklab, var(--color-success) 72%, #1a4430 28%);
+  border-radius: 10px;
+  color: #fff;
+  padding: 8px 12px;
+  position: fixed;
+  right: 14px;
+  top: 14px;
+  z-index: 80;
+}
 @media (max-width: 900px) {
   .head-row { align-items: flex-start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr; }

@@ -463,8 +463,8 @@ onBeforeUnmount(() => {
 .dropdown { position: relative; }
 .dropdown-trigger {
   align-items: center;
-  background: #fff;
-  border: 1px solid #d8cdc3;
+  background: color-mix(in oklab, var(--color-surface) 84%, var(--color-bg) 16%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
   border-radius: 10px;
   color: var(--color-text-main);
   cursor: pointer;
@@ -474,12 +474,17 @@ onBeforeUnmount(() => {
   padding: 8px 10px;
   width: 100%;
 }
-.dropdown-arrow { color: #85634f; }
+.dropdown-trigger:focus {
+  border-color: color-mix(in oklab, var(--color-primary) 46%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  outline: none;
+}
+.dropdown-arrow { color: var(--color-text-secondary); }
 .dropdown-menu {
-  background: #fff;
-  border: 1px solid #e2d5cb;
+  background: color-mix(in oklab, var(--color-surface) 92%, var(--color-bg) 8%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(31, 18, 12, 0.08);
+  box-shadow: var(--shadow-card);
   display: grid;
   gap: 2px;
   left: 0;
@@ -499,17 +504,23 @@ onBeforeUnmount(() => {
   padding: 8px 10px;
   text-align: left;
 }
-.dropdown-item:hover { background: #fff3e9; }
+.dropdown-item:hover { background: color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%); }
 .input {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background: #fff;
-  border: 1px solid #d8cdc3;
+  background: color-mix(in oklab, var(--color-surface) 84%, var(--color-bg) 16%);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
   border-radius: 10px;
   color: var(--color-text-main);
   font: inherit;
   padding: 8px 10px;
+}
+.input::placeholder { color: color-mix(in oklab, var(--color-text-secondary) 82%, transparent); }
+.input:focus {
+  border-color: color-mix(in oklab, var(--color-primary) 46%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  outline: none;
 }
 .select-wrap { position: relative; }
 .select-wrap::after {
@@ -519,34 +530,56 @@ onBeforeUnmount(() => {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #85634f;
+  color: var(--color-text-secondary);
 }
 .select-input { padding-right: 28px; }
 .select-input::-ms-expand { display: none; }
 .textarea { min-height: 96px; resize: vertical; }
 .inline-row { display: grid; gap: 8px; grid-template-columns: 1fr auto; }
 .upload-box {
-  background: linear-gradient(135deg, #fff8f2, #ffeede);
-  border: 1px dashed #d19a77;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-primary) 8%, var(--color-surface) 92%),
+    color-mix(in oklab, var(--color-accent) 12%, var(--color-surface) 88%)
+  );
+  border: 1px dashed color-mix(in oklab, var(--color-primary) 46%, transparent);
   border-radius: 12px;
   cursor: pointer;
   padding: 14px;
 }
 .upload-title { font-weight: 600; margin: 0; }
 .upload-desc { color: var(--color-text-secondary); margin: 6px 0 0; }
-.upload-meta { color: #7d6b5e; font-size: 13px; margin: 8px 0 0; }
+.upload-meta { color: var(--color-text-secondary); font-size: 13px; margin: 8px 0 0; }
 .file-hidden { display: none; }
 .parse-result-field { margin-top: 2px; }
-.parse-box { border: 1px solid #ead8cb; border-radius: 12px; background: #fff; padding: 10px; }
+.parse-box {
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-surface) 90%, var(--color-bg) 10%);
+  padding: 10px;
+}
 .parse-tip { margin: 0; color: var(--color-text-secondary); }
 .parse-list { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
-.parse-item { border: 1px solid #f0e4db; border-radius: 8px; display: grid; gap: 2px; padding: 8px; }
-.parse-file { color: #6f5f52; font-size: 12px; }
+.parse-item {
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 18%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+}
+.parse-file { color: var(--color-text-secondary); font-size: 12px; }
 .parse-url { color: var(--color-primary-deep); font-size: 13px; overflow-wrap: anywhere; }
-.parse-failed { color: #b0452b; font-size: 13px; }
+.parse-failed { color: color-mix(in oklab, var(--color-primary-deep) 84%, var(--color-text-main) 16%); font-size: 13px; }
 .action-button { border: 0; border-radius: 10px; background: var(--color-primary); color: #fff; margin-top: 12px; padding: 8px 12px; cursor: pointer; }
 .ghost-button { border: 1px solid color-mix(in oklab, var(--color-primary) 28%, #999 20%); border-radius: 10px; background: transparent; color: var(--color-text-main); cursor: pointer; padding: 8px 12px; }
-.mini-button { border: 0; border-radius: 10px; background: var(--color-primary-soft); color: var(--color-primary-deep); cursor: pointer; padding: 8px 10px; }
+.mini-button {
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-primary) 16%, var(--color-surface) 84%);
+  color: color-mix(in oklab, var(--color-primary-deep) 78%, var(--color-text-main) 22%);
+  cursor: pointer;
+  padding: 8px 10px;
+}
 .message { color: var(--color-text-secondary); margin: 10px 0 0; }
 @media (max-width: 900px) {
   .head-row { align-items: flex-start; flex-direction: column; }

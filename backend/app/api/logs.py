@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import String, cast, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,12 +13,33 @@ from app.schemas.logs import AccessLogItem, GiftClaimLogItem, OperationLogItem
 router = APIRouter(prefix="/api/logs", tags=["logs"])
 
 
+def _normalize_keyword(q: str) -> str:
+    return q.strip()
+
+
 @router.get("/access")
 def list_access_logs(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    q: str = Query(default=""),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
-    rows = list(db.scalars(select(AccessLog).order_by(AccessLog.id.desc()).limit(200)).all())
+    keyword = _normalize_keyword(q)
+    stmt = select(AccessLog)
+    if keyword:
+        pattern = f"%{keyword}%"
+        stmt = stmt.where(
+            or_(
+                AccessLog.source.ilike(pattern),
+                AccessLog.path.ilike(pattern),
+                AccessLog.method.ilike(pattern),
+                AccessLog.ip.ilike(pattern),
+                cast(AccessLog.status_code, String).ilike(pattern),
+            )
+        )
+
+    rows = list(db.scalars(stmt.order_by(AccessLog.id.desc()).offset(offset).limit(limit)).all())
     data = [
         AccessLogItem(
             id=row.id,
@@ -37,10 +58,28 @@ def list_access_logs(
 
 @router.get("/claims")
 def list_claim_logs(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    q: str = Query(default=""),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
-    rows = list(db.scalars(select(GiftClaimLog).order_by(GiftClaimLog.id.desc()).limit(200)).all())
+    keyword = _normalize_keyword(q)
+    stmt = select(GiftClaimLog)
+    if keyword:
+        pattern = f"%{keyword}%"
+        stmt = stmt.where(
+            or_(
+                cast(GiftClaimLog.gift_qrcode_id, String).ilike(pattern),
+                cast(GiftClaimLog.red_packet_id, String).ilike(pattern),
+                GiftClaimLog.dispatch_strategy.ilike(pattern),
+                GiftClaimLog.ip.ilike(pattern),
+                GiftClaimLog.result.ilike(pattern),
+                GiftClaimLog.reason.ilike(pattern),
+            )
+        )
+
+    rows = list(db.scalars(stmt.order_by(GiftClaimLog.id.desc()).offset(offset).limit(limit)).all())
     data = [
         GiftClaimLogItem(
             id=row.id,
@@ -59,10 +98,25 @@ def list_claim_logs(
 
 @router.get("/operations")
 def list_operation_logs(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    q: str = Query(default=""),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
-    rows = list(db.scalars(select(OperationLog).order_by(OperationLog.id.desc()).limit(200)).all())
+    keyword = _normalize_keyword(q)
+    stmt = select(OperationLog)
+    if keyword:
+        pattern = f"%{keyword}%"
+        stmt = stmt.where(
+            or_(
+                cast(OperationLog.user_id, String).ilike(pattern),
+                OperationLog.action.ilike(pattern),
+                OperationLog.detail.ilike(pattern),
+            )
+        )
+
+    rows = list(db.scalars(stmt.order_by(OperationLog.id.desc()).offset(offset).limit(limit)).all())
     data = [
         OperationLogItem(
             id=row.id,

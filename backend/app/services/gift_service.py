@@ -12,16 +12,14 @@ from app.core.security import create_claim_content_token, hash_gift_token
 from app.models.gift import GiftClaimLog
 from app.models.red_packet import RedPacket
 from app.repositories.gift_repository import GiftRepository
-from app.services.system_config_service import get_runtime_storage_config
-from app.storage.factory import get_storage
+from app.services.system_config_service import get_runtime_storage_channels
+from app.storage.factory import create_storage_from_channel
 
 
 class GiftService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = GiftRepository(db)
-        self.storage = get_storage(db)
-        self.storage_runtime = get_runtime_storage_config(db)
 
     def create_gift(
         self,
@@ -41,8 +39,10 @@ class GiftService:
         claim_url = self._build_claim_url(token, host_base)
         token_hash = hash_gift_token(token)
         image_data = self._render_qrcode(claim_url)
-        object_key = self._build_object_key(token_hash)
-        image_url = self.storage.upload_bytes(object_key, image_data, "image/png")
+        image_url, channel_id, object_key = self._upload_qrcode_with_failover(
+            token_hash=token_hash,
+            image_data=image_data,
+        )
 
         gift = self.repo.create_gift(
             title=title,
@@ -54,6 +54,7 @@ class GiftService:
             dispatch_strategy=dispatch_strategy,
             style_type=style_type,
             style_config=json.dumps({"style_type": style_type}, ensure_ascii=False),
+            storage_channel_id=channel_id,
             image_url=image_url,
             object_key=object_key,
         )
@@ -85,17 +86,17 @@ class GiftService:
         claim_url = self._build_claim_url(token, host_base)
         token_hash = hash_gift_token(token)
         image_data = self._render_qrcode(claim_url)
-        object_key = self._build_object_key(token_hash)
-        image_url = self.storage.upload_bytes(object_key, image_data, "image/png")
+        image_url, channel_id, object_key = self._upload_qrcode_with_failover(
+            token_hash=token_hash,
+            image_data=image_data,
+        )
 
-        if gift.object_key:
-            try:
-                self.storage.delete(gift.object_key)
-            except Exception:
-                pass
+        if gift.object_key and gift.storage_channel_id:
+            self._try_delete_existing_object(gift.storage_channel_id, gift.object_key)
 
         gift.token_plain = token
         gift.token_hash = token_hash
+        gift.storage_channel_id = channel_id
         gift.image_url = image_url
         gift.object_key = object_key
         self.db.commit()
@@ -330,13 +331,40 @@ class GiftService:
         base = preferred_base or configured_base
         return f"{base}/r/{token}"
 
-    def _build_object_key(self, token_hash: str) -> str:
+    def _build_object_key(self, token_hash: str, prefix: str) -> str:
         now = datetime.now()
         relative = f"gifts/{now:%Y}/{now:%m}/{token_hash[:16]}.png"
-        prefix = self.storage_runtime.storage_prefix.strip().strip("/")
-        if not prefix:
+        normalized_prefix = prefix.strip().strip("/")
+        if not normalized_prefix:
             return relative
-        return f"{prefix}/{relative}"
+        return f"{normalized_prefix}/{relative}"
+
+    def _upload_qrcode_with_failover(
+        self, token_hash: str, image_data: bytes
+    ) -> tuple[str, str, str]:
+        channels = get_runtime_storage_channels(self.db)
+        errors: list[str] = []
+        for channel in channels:
+            object_key = self._build_object_key(token_hash, channel.storage_prefix)
+            try:
+                storage = create_storage_from_channel(channel)
+                image_url = storage.upload_bytes(object_key, image_data, "image/png")
+                return image_url, channel.id, object_key
+            except Exception as exc:
+                errors.append(f"{channel.name}: {exc}")
+
+        raise RuntimeError("二维码上传失败：" + " | ".join(errors))
+
+    def _try_delete_existing_object(self, channel_id: str, object_key: str) -> None:
+        channels = get_runtime_storage_channels(self.db)
+        target = next((item for item in channels if item.id == channel_id), None)
+        if not target:
+            return
+        try:
+            storage = create_storage_from_channel(target)
+            storage.delete(object_key)
+        except Exception:
+            pass
 
     @staticmethod
     def _to_utc(dt):

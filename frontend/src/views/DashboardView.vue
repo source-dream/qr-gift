@@ -18,6 +18,7 @@ const trend = reactive<DashboardTrend>({
 })
 const trendRef = useTemplateRef<HTMLDivElement>('trend')
 let trendChart: ECharts | null = null
+let themeObserver: MutationObserver | null = null
 
 const overview = reactive<DashboardOverview>({
   total_gifts: 0,
@@ -67,9 +68,17 @@ async function renderTrendChart(): Promise<void> {
     trendChart = echarts.init(trendRef.value)
   }
 
+  const css = getComputedStyle(document.documentElement)
+  const colorText = css.getPropertyValue('--color-text-secondary').trim() || '#7a6360'
+  const colorGrid = css.getPropertyValue('--color-text-secondary').trim() || '#7a6360'
+  const colorSuccess = css.getPropertyValue('--color-success').trim() || '#1f8a4c'
+  const colorPrimary = css.getPropertyValue('--color-primary').trim() || '#d9362b'
+  const colorSurface = css.getPropertyValue('--color-surface').trim() || '#ffffff'
+
   const isMobile = window.innerWidth <= 680
 
   trendChart.setOption({
+    backgroundColor: colorSurface,
     tooltip: { trigger: 'axis' },
     grid: {
       left: 10,
@@ -84,26 +93,35 @@ async function renderTrendChart(): Promise<void> {
       top: 0,
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { fontSize: 11 },
+      textStyle: { fontSize: 11, color: colorText },
     },
-    xAxis: { type: 'category', data: trend.days },
-    yAxis: { type: 'value' },
+    xAxis: {
+      type: 'category',
+      data: trend.days,
+      axisLabel: { color: colorText },
+      axisLine: { lineStyle: { color: colorGrid } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colorText },
+      splitLine: { lineStyle: { color: colorGrid, opacity: 0.25 } },
+    },
     series: [
       {
         name: '成功领取',
         type: 'line',
         smooth: true,
         data: trend.success,
-        lineStyle: { color: '#1f8a4c' },
-        itemStyle: { color: '#1f8a4c' },
+        lineStyle: { color: colorSuccess },
+        itemStyle: { color: colorSuccess },
       },
       {
         name: '拦截次数',
         type: 'line',
         smooth: true,
         data: trend.rejected,
-        lineStyle: { color: '#d9362b' },
-        itemStyle: { color: '#d9362b' },
+        lineStyle: { color: colorPrimary },
+        itemStyle: { color: colorPrimary },
       },
     ],
   })
@@ -118,6 +136,13 @@ function handleResize(): void {
 onMounted(() => {
   loadOverview()
   window.addEventListener('resize', handleResize)
+  themeObserver = new MutationObserver(() => {
+    void renderTrendChart()
+  })
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
 })
 
 onBeforeUnmount(() => {
@@ -125,6 +150,10 @@ onBeforeUnmount(() => {
   if (trendChart) {
     trendChart.dispose()
     trendChart = null
+  }
+  if (themeObserver) {
+    themeObserver.disconnect()
+    themeObserver = null
   }
 })
 </script>

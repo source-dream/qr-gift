@@ -7,6 +7,8 @@ from app.core.response import ok
 from app.models.user import User
 from app.schemas.system_config import (
     ClaimContactUpdateRequest,
+    StorageChannelTestRequest,
+    StorageChannelsUpdateRequest,
     StorageConfigTestRequest,
     StorageConfigUpdateRequest,
 )
@@ -78,3 +80,38 @@ def update_claim_contact(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ok(data.model_dump(), "保存成功")
+
+
+@router.get("/storage-channels")
+def list_storage_channels(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_admin),
+) -> dict:
+    data = SystemConfigService(db).list_storage_channels()
+    return ok(data.model_dump())
+
+
+@router.put("/storage-channels")
+def update_storage_channels(
+    payload: StorageChannelsUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_admin),
+) -> dict:
+    try:
+        data = SystemConfigService(db).update_storage_channels(payload, user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ok(data.model_dump(), "保存成功")
+
+
+@router.post("/storage-channels/test")
+def test_storage_channel(
+    payload: StorageChannelTestRequest,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_admin),
+) -> dict:
+    try:
+        SystemConfigService(db).test_storage_channel(payload)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"连接测试失败: {exc}") from exc
+    return ok(message="连接测试通过")

@@ -17,6 +17,9 @@ const message = shallowRef('')
 const list = shallowRef<RedPacketItem[]>([])
 const editingId = shallowRef<number | null>(null)
 const saving = shallowRef(false)
+const deleting = shallowRef(false)
+const removeTarget = shallowRef<RedPacketItem | null>(null)
+const confirmVisible = shallowRef(false)
 const filters = reactive({
   keyword: '',
   category: '',
@@ -40,6 +43,25 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
     return detail
   }
   return fallback
+}
+
+function statusLabel(status: string): string {
+  if (status === 'idle') {
+    return '可用'
+  }
+  if (status === 'bound') {
+    return '已绑定'
+  }
+  if (status === 'claimed') {
+    return '已领取'
+  }
+  if (status === 'disabled') {
+    return '已停用'
+  }
+  if (status === 'deleted') {
+    return '已删除'
+  }
+  return status || '-'
 }
 
 const categoryOptions = computed(() => {
@@ -118,6 +140,9 @@ function beginEdit(item: RedPacketItem): void {
 }
 
 function cancelEdit(): void {
+  if (saving.value) {
+    return
+  }
   editingId.value = null
 }
 
@@ -161,19 +186,40 @@ async function toggleDisable(item: RedPacketItem): Promise<void> {
   }
 }
 
-async function removeItem(item: RedPacketItem): Promise<void> {
-  if (!window.confirm(`确认删除【${item.title}】吗？将自动解绑关联礼物。`)) {
+function openRemoveConfirm(item: RedPacketItem): void {
+  if (deleting.value) {
     return
   }
+  removeTarget.value = item
+  confirmVisible.value = true
+}
+
+function closeRemoveConfirm(): void {
+  if (deleting.value) {
+    return
+  }
+  confirmVisible.value = false
+  removeTarget.value = null
+}
+
+async function removeItem(): Promise<void> {
+  const item = removeTarget.value
+  if (!item) {
+    return
+  }
+  deleting.value = true
   try {
     await deleteRedPacket(item.id)
-    message.value = '已自动解绑并删除'
+    message.value = item.status === 'claimed' ? '已标记删除（日志保留）' : '已自动解绑并删除'
     if (editingId.value === item.id) {
       editingId.value = null
     }
     await loadList()
   } catch (error) {
     message.value = resolveErrorMessage(error, '删除失败')
+  } finally {
+    deleting.value = false
+    closeRemoveConfirm()
   }
 }
 
@@ -193,7 +239,7 @@ onMounted(async () => {
         <h2 class="title">礼物管理</h2>
         <p class="desc">统一管理链接、文本、图片三类红包内容。</p>
       </div>
-      <button class="action-button" type="button" @click="router.push('/red-packets/import')">导入红包</button>
+      <button class="action-button" type="button" @click="router.push('/red-packets/import')">导入礼物</button>
     </div>
 
     <p v-if="message" class="message">{{ message }}</p>
@@ -239,7 +285,13 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in filteredList" :key="item.id">
+          <tr
+            v-for="item in filteredList"
+            :key="item.id"
+            class="clickable-row"
+            :class="{ active: editingId === item.id }"
+            @click="beginEdit(item)"
+          >
             <td>{{ item.id }}</td>
             <td>{{ item.title }}</td>
             <td>{{ item.category_name }}</td>
@@ -247,7 +299,7 @@ onMounted(async () => {
             <td>{{ item.level }}</td>
             <td>{{ item.content_type }}</td>
             <td>{{ item.tags.join(', ') || '-' }}</td>
-            <td>{{ item.status }}</td>
+            <td>{{ statusLabel(item.status) }}</td>
             <td class="url-cell">
               <template v-if="item.content_type === 'qr_image'">
                 <a :href="item.content_image_url" target="_blank" rel="noreferrer">查看图片</a>
@@ -257,16 +309,16 @@ onMounted(async () => {
               </template>
             </td>
             <td class="actions-cell">
-              <button class="mini-button ghost" type="button" @click="beginEdit(item)">编辑</button>
+              <button class="mini-button ghost" type="button" @click.stop="beginEdit(item)">编辑</button>
               <button
                 class="mini-button"
                 type="button"
                 :disabled="item.status === 'claimed'"
-                @click="toggleDisable(item)"
+                @click.stop="toggleDisable(item)"
               >
                 {{ item.status === 'disabled' ? '启用' : '停用' }}
               </button>
-              <button class="mini-button danger" type="button" :disabled="item.status === 'claimed'" @click="removeItem(item)">
+              <button class="mini-button danger" type="button" @click.stop="openRemoveConfirm(item)">
                 删除
               </button>
             </td>
@@ -275,39 +327,68 @@ onMounted(async () => {
       </table>
     </div>
 
-    <section v-if="editingId" class="edit-panel">
-      <h3 class="edit-title">编辑礼物 #{{ editingId }}</h3>
-      <div class="edit-grid">
-        <label class="field full">
-          <span>名称</span>
-          <input v-model="editForm.title" class="input" type="text" />
-        </label>
-        <label class="field">
-          <span>金额</span>
-          <input v-model.number="editForm.amount" class="input" min="0" step="0.01" type="number" />
-        </label>
-        <label class="field">
-          <span>等级</span>
-          <input v-model.number="editForm.level" class="input" min="1" max="10" type="number" />
-        </label>
-        <label class="field full">
-          <span>链接内容</span>
-          <input v-model="editForm.content_value" class="input" type="text" />
-        </label>
-        <label class="field">
-          <span>激活时间（可选）</span>
-          <input v-model="editForm.available_from" class="input" type="datetime-local" />
-        </label>
-        <label class="field">
-          <span>失效时间（可选）</span>
-          <input v-model="editForm.available_to" class="input" type="datetime-local" />
-        </label>
+    <div v-if="editingId" class="drawer-mask" @click="cancelEdit">
+      <aside class="drawer" role="dialog" aria-modal="true" @click.stop>
+        <header class="drawer-head">
+          <div>
+            <h3 class="edit-title">编辑礼物 #{{ editingId }}</h3>
+            <p class="drawer-desc">在抽屉中编辑后可直接保存并刷新列表。</p>
+          </div>
+          <button class="mini-button ghost" type="button" :disabled="saving" @click="cancelEdit">关闭</button>
+        </header>
+
+        <div class="edit-grid">
+          <label class="field full">
+            <span>名称</span>
+            <input v-model="editForm.title" class="input" type="text" />
+          </label>
+          <label class="field">
+            <span>金额</span>
+            <input v-model.number="editForm.amount" class="input" min="0" step="0.01" type="number" />
+          </label>
+          <label class="field">
+            <span>等级</span>
+            <input v-model.number="editForm.level" class="input" min="1" max="10" type="number" />
+          </label>
+          <label class="field full">
+            <span>链接内容</span>
+            <input v-model="editForm.content_value" class="input" type="text" />
+          </label>
+          <label class="field">
+            <span>激活时间（可选）</span>
+            <input v-model="editForm.available_from" class="input" type="datetime-local" />
+          </label>
+          <label class="field">
+            <span>失效时间（可选）</span>
+            <input v-model="editForm.available_to" class="input" type="datetime-local" />
+          </label>
+        </div>
+
+        <div class="edit-actions">
+          <button class="mini-button" type="button" :disabled="saving" @click="submitEdit">{{ saving ? '保存中...' : '保存' }}</button>
+          <button class="mini-button ghost" type="button" :disabled="saving" @click="cancelEdit">取消</button>
+        </div>
+      </aside>
+    </div>
+
+    <div v-if="confirmVisible" class="confirm-mask" @click="closeRemoveConfirm">
+      <div class="confirm-dialog" role="dialog" aria-modal="true" @click.stop>
+        <h3 class="confirm-title">确认删除红包？</h3>
+        <p class="confirm-desc">
+          {{
+            removeTarget?.status === 'claimed'
+              ? `【${removeTarget.title}】已领取，删除后会标记为已删除并保留日志。`
+              : `【${removeTarget?.title || ''}】删除后将自动解绑关联礼物。`
+          }}
+        </p>
+        <div class="confirm-actions">
+          <button class="mini-button ghost" type="button" :disabled="deleting" @click="closeRemoveConfirm">取消</button>
+          <button class="mini-button danger" type="button" :disabled="deleting" @click="removeItem">
+            {{ deleting ? '删除中...' : '确认删除' }}
+          </button>
+        </div>
       </div>
-      <div class="edit-actions">
-        <button class="mini-button" type="button" :disabled="saving" @click="submitEdit">{{ saving ? '保存中...' : '保存' }}</button>
-        <button class="mini-button ghost" type="button" :disabled="saving" @click="cancelEdit">取消</button>
-      </div>
-    </section>
+    </div>
   </section>
 </template>
 
@@ -345,6 +426,10 @@ onMounted(async () => {
 .table tbody tr:hover {
   background: color-mix(in oklab, var(--color-primary) 6%, var(--color-surface) 94%);
 }
+.clickable-row { cursor: pointer; }
+.clickable-row.active {
+  background: color-mix(in oklab, var(--color-primary) 10%, var(--color-surface) 90%);
+}
 .table th, .table td {
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-secondary) 22%, transparent);
   color: var(--color-text-main);
@@ -357,18 +442,59 @@ onMounted(async () => {
 .mini-button { border: 0; border-radius: 8px; background: var(--color-primary); color: #fff; cursor: pointer; padding: 4px 8px; }
 .mini-button.ghost { background: transparent; border: 1px solid color-mix(in oklab, var(--color-primary) 28%, #999 20%); color: var(--color-text-main); }
 .mini-button.danger { background: color-mix(in oklab, var(--color-primary-deep) 82%, #7a1f18 18%); }
-.edit-panel {
-  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
-  border-radius: 12px;
-  margin-top: 14px;
-  padding: 12px;
-  background: color-mix(in oklab, var(--color-surface) 90%, var(--color-bg) 10%);
+.drawer-mask {
+  background: rgba(15, 10, 7, 0.4);
+  inset: 0;
+  position: fixed;
+  z-index: 70;
 }
+
+.drawer {
+  background: var(--color-surface);
+  box-shadow: -10px 0 30px color-mix(in oklab, #000 32%, transparent);
+  height: 100%;
+  overflow: auto;
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: min(620px, 100%);
+}
+
+.drawer-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
 .edit-title { margin: 0 0 10px; }
+.drawer-desc { color: var(--color-text-secondary); margin: 6px 0 0; }
 .edit-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field { display: grid; gap: 6px; }
 .field.full { grid-column: span 2; }
 .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+.confirm-mask {
+  align-items: center;
+  background: rgba(22, 16, 12, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 90;
+}
+.confirm-dialog {
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-text-secondary) 24%, transparent);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  max-width: 520px;
+  padding: 14px;
+  width: min(92vw, 520px);
+}
+.confirm-title { margin: 0; }
+.confirm-desc { color: var(--color-text-secondary); margin: 10px 0 0; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 @media (max-width: 900px) {
   .head-row { align-items: flex-start; flex-direction: column; }
   .filters { grid-template-columns: 1fr; }

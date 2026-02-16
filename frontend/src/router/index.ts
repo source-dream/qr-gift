@@ -6,8 +6,10 @@ import DashboardView from '../views/DashboardView.vue'
 import GiftCreateView from '../views/GiftCreateView.vue'
 import GiftEditView from '../views/GiftEditView.vue'
 import GiftView from '../views/GiftView.vue'
+import JumpPageManageView from '../views/JumpPageManageView.vue'
 import LoginView from '../views/LoginView.vue'
 import LogsView from '../views/LogsView.vue'
+import RedPacketStyleManageView from '../views/RedPacketStyleManageView.vue'
 import RedPacketImportView from '../views/RedPacketImportView.vue'
 import RedPacketView from '../views/RedPacketView.vue'
 import SecurityView from '../views/SecurityView.vue'
@@ -32,6 +34,12 @@ const router = createRouter({
         { path: 'gifts/:id/edit', name: 'giftEdit', component: GiftEditView },
         { path: 'red-packets', name: 'redPackets', component: RedPacketView },
         { path: 'red-packets/import', name: 'redPacketImport', component: RedPacketImportView },
+        { path: 'jump-pages', name: 'jumpPages', component: JumpPageManageView },
+        {
+          path: 'red-packet-styles',
+          name: 'redPacketStyles',
+          component: RedPacketStyleManageView,
+        },
         { path: 'security', name: 'security', component: SecurityView },
         { path: 'logs', name: 'logs', component: LogsView },
         { path: 'system-config', name: 'systemConfig', component: SystemConfigView },

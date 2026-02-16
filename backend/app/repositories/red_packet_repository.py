@@ -57,7 +57,12 @@ class RedPacketRepository:
         return item
 
     def list_items(self, limit: int = 100) -> list[RedPacket]:
-        stmt = select(RedPacket).order_by(RedPacket.id.desc()).limit(limit)
+        stmt = (
+            select(RedPacket)
+            .where(RedPacket.status != "deleted")
+            .order_by(RedPacket.id.desc())
+            .limit(limit)
+        )
         return list(self.db.scalars(stmt).all())
 
     def get_item(self, red_packet_id: int) -> RedPacket | None:

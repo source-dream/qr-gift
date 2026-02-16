@@ -323,8 +323,12 @@ def delete_red_packet(
     item = repo.get_item(red_packet_id)
     if not item:
         raise HTTPException(status_code=404, detail="礼物记录不存在")
+
     if item.status == "claimed":
-        raise HTTPException(status_code=400, detail="已领取记录不可删除")
+        # 中文注释：已领取记录改为逻辑删除，避免破坏历史领取日志关联。
+        item.status = "deleted"
+        db.commit()
+        return ok(message="已标记删除（日志保留）")
 
     bindings = repo.list_active_gift_bindings(item.id)
     for binding in bindings:

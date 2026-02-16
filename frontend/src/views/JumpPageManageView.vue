@@ -2,8 +2,8 @@
 
 <template>
   <section class="card-surface">
-    <h2 class="title">安全策略</h2>
-    <p class="desc">功能占位中，后续将在这里提供安全策略配置能力。</p>
+    <h2 class="title">跳转页面管理</h2>
+    <p class="desc">功能占位中，后续将在这里提供跳转页面配置与发布能力。</p>
   </section>
 </template>
 

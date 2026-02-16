@@ -78,6 +78,25 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
+function packetStatusLabel(status: string): string {
+  if (status === 'idle') {
+    return '可用'
+  }
+  if (status === 'bound') {
+    return '已绑定'
+  }
+  if (status === 'claimed') {
+    return '已领取'
+  }
+  if (status === 'disabled') {
+    return '已停用'
+  }
+  if (status === 'deleted') {
+    return '已删除'
+  }
+  return status || '-'
+}
+
 function toDatetimeLocal(value: string | null): string {
   if (!value) {
     return ''
@@ -324,7 +343,7 @@ watch(
         <span>当前已绑定红包</span>
         <div class="selected-grid">
           <div v-for="item in selectedPackets" :key="`selected-${item.id}`" class="selected-item">
-            <span>#{{ item.id }} 金额 {{ item.amount }} 等级 {{ item.level }} 状态 {{ item.status }}</span>
+            <span>#{{ item.id }} 金额 {{ item.amount }} 等级 {{ item.level }} 状态 {{ packetStatusLabel(item.status) }}</span>
             <button class="mini-remove" type="button" @click="removeSelectedPacket(item.id)">移除</button>
           </div>
         </div>
@@ -333,7 +352,7 @@ watch(
         <div class="packet-grid">
           <label v-for="item in availablePackets" :key="item.id" class="packet-item">
             <input v-model="form.red_packet_ids" type="checkbox" :value="item.id" />
-            <span>#{{ item.id }} 金额 {{ item.amount }} 等级 {{ item.level }} 状态 {{ item.status }}</span>
+            <span>#{{ item.id }} 金额 {{ item.amount }} 等级 {{ item.level }} 状态 {{ packetStatusLabel(item.status) }}</span>
           </label>
         </div>
         <p v-if="!availablePackets.length" class="hint">当前无可选红包（可能都已绑定或已领取）</p>

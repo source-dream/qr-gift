@@ -14,6 +14,8 @@ const navItems: NavItem[] = [
   { to: '/', label: '监控看板' },
   { to: '/gifts', label: '礼物二维码' },
   { to: '/red-packets', label: '礼物管理' },
+  { to: '/jump-pages', label: '跳转页面管理' },
+  { to: '/red-packet-styles', label: '红包样式管理' },
   { to: '/security', label: '安全策略' },
   { to: '/logs', label: '日志中心' },
   { to: '/system-config', label: '系统配置' },
@@ -34,6 +36,12 @@ const currentTitle = computed(() => {
   }
   if (route.path.startsWith('/red-packets/')) {
     return '礼物管理'
+  }
+  if (route.path.startsWith('/jump-pages')) {
+    return '跳转页面管理'
+  }
+  if (route.path.startsWith('/red-packet-styles')) {
+    return '红包样式管理'
   }
   return 'QRGift 控制台'
 })

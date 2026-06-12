@@ -5,8 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import {
   deleteGift,
+  downloadGiftQrcode,
   getGiftById,
-  getGiftQrcodeDownloadUrl,
   regenerateGiftQrcode,
   updateGift,
 } from '../api/modules/gift'
@@ -158,14 +158,7 @@ function downloadQrCode(): void {
   if (!giftId.value) {
     return
   }
-  getGiftQrcodeDownloadUrl(giftId.value)
-    .then((url) => {
-      const link = document.createElement('a')
-      link.href = url
-      link.target = '_blank'
-      link.rel = 'noreferrer'
-      link.click()
-    })
+  downloadGiftQrcode(giftId.value)
     .catch((error) => {
       message.value = resolveErrorMessage(error, '二维码下载失败')
     })

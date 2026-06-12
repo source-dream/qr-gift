@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, shallowRef, watch } from 'vue'
 import QRCode from 'qrcode'
 import { useRouter } from 'vue-router'
 
-import { createGift, getGiftQrcodeDownloadUrl } from '../api/modules/gift'
+import { createGift, downloadGiftQrcode } from '../api/modules/gift'
 import { listRedPackets, type RedPacketItem } from '../api/modules/redPacket'
 
 const router = useRouter()
@@ -128,14 +128,7 @@ function downloadQrCode(): void {
   if (!createdGiftId.value) {
     return
   }
-  getGiftQrcodeDownloadUrl(createdGiftId.value)
-    .then((url) => {
-      const link = document.createElement('a')
-      link.href = url
-      link.target = '_blank'
-      link.rel = 'noreferrer'
-      link.click()
-    })
+  downloadGiftQrcode(createdGiftId.value)
     .catch((error) => {
       message.value = resolveErrorMessage(error, '二维码下载失败')
     })

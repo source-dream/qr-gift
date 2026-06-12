@@ -16,13 +16,24 @@ ENV PYTHONUNBUFFERED=1
 
 COPY backend/pyproject.toml ./pyproject.toml
 COPY backend/README.md ./README.md
+
+RUN python - <<'PY'
+import tomllib
+from pathlib import Path
+
+deps = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"][
+    "dependencies"
+]
+Path("/tmp/requirements.txt").write_text("\n".join(deps) + "\n", encoding="utf-8")
+PY
+
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r /tmp/requirements.txt
+
 COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./alembic.ini
 COPY backend/scripts ./scripts
 COPY --from=frontend-build /frontend/dist ./frontend_dist
-
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
 
 EXPOSE 8000
 

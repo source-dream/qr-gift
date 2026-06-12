@@ -74,6 +74,7 @@ export interface RegenerateGiftQrcodeResult {
 
 export interface GiftQrcodeDownloadUrlResult {
   url: string
+  mode: 'auth_proxy' | 'direct'
 }
 
 export async function createGift(payload: CreateGiftPayload): Promise<CreateGiftResult> {
@@ -124,9 +125,31 @@ export async function regenerateGiftQrcode(giftId: number): Promise<RegenerateGi
   return response.data.data
 }
 
-export async function getGiftQrcodeDownloadUrl(giftId: number): Promise<string> {
+export async function getGiftQrcodeDownloadUrl(giftId: number): Promise<GiftQrcodeDownloadUrlResult> {
   const response = await client.get<ApiEnvelope<GiftQrcodeDownloadUrlResult>>(
     `/gifts/${giftId}/qrcode-download-url`,
   )
-  return response.data.data.url
+  return response.data.data
+}
+
+export async function downloadGiftQrcode(giftId: number): Promise<void> {
+  const result = await getGiftQrcodeDownloadUrl(giftId)
+  if (result.mode === 'direct') {
+    const link = document.createElement('a')
+    link.href = result.url
+    link.target = '_blank'
+    link.rel = 'noreferrer'
+    link.click()
+    return
+  }
+
+  const response = await client.get<Blob>(result.url, { responseType: 'blob' })
+  const blobUrl = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = `gift-qrcode-${giftId}.png`
+  link.click()
+  setTimeout(() => {
+    URL.revokeObjectURL(blobUrl)
+  }, 0)
 }

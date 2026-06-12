@@ -8,10 +8,10 @@ import {
   deleteGift,
   disableGift,
   getGiftById,
-  getGiftQrcodeDownloadUrl,
   listGifts,
   regenerateGiftQrcode,
   updateGift,
+  downloadGiftQrcode,
   type GiftItem,
 } from '../api/modules/gift'
 import { listRedPackets, type RedPacketItem } from '../api/modules/redPacket'
@@ -271,12 +271,7 @@ async function changeStatus(id: number, next: 'activate' | 'disable'): Promise<v
 
 async function downloadQrImage(id: number): Promise<void> {
   try {
-    const url = await getGiftQrcodeDownloadUrl(id)
-    const link = document.createElement('a')
-    link.href = url
-    link.target = '_blank'
-    link.rel = 'noreferrer'
-    link.click()
+    await downloadGiftQrcode(id)
   } catch (error) {
     message.value = resolveErrorMessage(error, '二维码下载失败')
   }

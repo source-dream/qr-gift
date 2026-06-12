@@ -264,7 +264,12 @@ def get_gift_qrcode_download_url(
     channel = next((item for item in channels if item.id == gift.storage_channel_id), None)
     if not channel or channel.provider == "local":
         base = _resolve_public_web_base(request)
-        return ok({"url": f"{base}/api/gifts/{gift_id}/qrcode.png?download=1"})
+        return ok(
+            {
+                "url": f"{base}/api/gifts/{gift_id}/qrcode.png?download=1",
+                "mode": "auth_proxy",
+            }
+        )
 
     storage = create_storage_from_channel(channel)
     try:
@@ -273,5 +278,10 @@ def get_gift_qrcode_download_url(
         raise HTTPException(status_code=400, detail=f"下载链接生成失败: {exc}") from exc
     if url.startswith("local://"):
         base = _resolve_public_web_base(request)
-        return ok({"url": f"{base}/api/gifts/{gift_id}/qrcode.png?download=1"})
-    return ok({"url": url})
+        return ok(
+            {
+                "url": f"{base}/api/gifts/{gift_id}/qrcode.png?download=1",
+                "mode": "auth_proxy",
+            }
+        )
+    return ok({"url": url, "mode": "direct"})

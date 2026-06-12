@@ -53,6 +53,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-windows.ps1
 - [ ] 更丰富的限制条件，设定更多领取的算法，例如群发情况(你设定你喜欢的人能够抢到最大的包)
 - [ ] 红包领取通知，红包有效期通知
 - [ ] 二维码定制与美化
+- [ ] 通知管理
 
 ## 贡献指南
 
